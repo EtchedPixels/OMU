@@ -1,3 +1,6 @@
+(This is the README the late Dr Hosgood included with the archive files)
+
+
 The OMU Kernel was written to provide a cut-down Unix-like O/S for a
 home-made 6809-based home computer built by me, Steven Hosgood, in the
 early 1980s. This package contains the port of that code to the 68000
@@ -26,4 +29,4 @@ other such things I will be happy to make them downloadable from my
 WWW page(s) too.
 
 Happy Experimenting!
-Steve Hosgood <iisteve@iiit.swan.ac.uk>
+Steve Hosgood
