@@ -1,0 +1,32 @@
+check: check.c
+	cc09 -t 5c00 -o check check.c
+	nm09 check | /bin/grep \?
+
+chbase: chbase.o
+chmod: chmod.o
+date: date.o
+dcheck: dcheck.o
+dump: dump.o
+grep: grep.c
+	cc09 -t 6000 -o grep grep.c -lstd
+	nm09 grep | /bin/grep \?
+
+icheck: icheck.o
+ln: ln.o
+ls: ls.o
+mkdir: mkdir.o
+mknod: mknod.o
+mv: mv.o
+noddy: noddy.c
+	cc09 -t 6000 -o noddy noddy.c -lstd
+	nm09 noddy | /bin/grep \?
+
+pwd: pwd.o
+sirius: sirius.o
+sh: sh.c
+	cc09 -t 4800 -o sh sh.c
+	nm09 sh | /bin/grep \?
+
+.c.o:
+	cc09 -t 6000 -o $* $*.c
+	nm09 $* | /bin/grep \?

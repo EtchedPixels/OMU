@@ -1,0 +1,36 @@
+/*
+ * Inode structure as it appears on
+ * a disk block.
+ * Hacked to work on 6809, 10.feb.84
+ */
+
+struct dinode
+{
+	unsigned        di_mode;        /* mode and type of file */
+	int     di_nlink;       /* number of links to file */
+	int     di_uid;         /* owner's user id */
+	int     di_gid;         /* owner's group id */
+	int     fill1;
+	int     di_size;        /* number of bytes in file */
+	struct {
+		char    hi_b;
+		int     lo_w;
+	}       di_addr[13];
+	char    fill2;
+	long    di_atime;       /* last access */
+	long    di_mtime;       /* last mod */
+	long    di_ctime;       /* create date */
+};
+
+#define INOPB   8       /* 8 inodes per block */
+
+/*
+ * the 40 address bytes:
+ *      39 used; 13 addresses
+ *      of 3 bytes each.
+ */
+
+/*
+ * Some routines don't return integers.
+ */
+struct dinode *getdiptr();

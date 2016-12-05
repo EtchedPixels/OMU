@@ -1,0 +1,130 @@
+;
+; Mc - machine code assist for 6809 Unix. S.Hosgood, 27.Mar.84
+;       Notes: first comes a jump to start location of code proper, then
+;       come a set of jump instructions for the various types of interrupt
+;       possible. This module MUST load at location $1D, the first
+;       interrupt vector sits at $20.
+;
+
+omu:
+	jmp     start           ;jumps to start-up on entry.
+	jmp     _exit           ; - SWI3 -      not used
+	jmp     _exit           ; - SWI2 -      not used
+	jmp     _exit           ; - FIRQ -      not used
+	jmp     _irq            ;clock and acia interrupts
+	jmp     _swi            ;syscalls from user software.
+	jmp     _exit           ;dummy - some monitors don't re-vector NMI
+
+;
+; start-up routine for OMU.
+;       bss is zeroised
+;       'main' is called.
+;       'Exit' is here, called from panic routine.
+;
+	globl   _main, ?edata, ?ebss
+ramtop = 0E900h                 ;set this to one above your actual ram area.
+
+start:
+	lds     #ramtop         ;initialise stack.
+	ldx     #?edata         ;points to first location of bss.
+
+clrloop:
+	clr     ,x+
+	cmpx    #?ebss          ;finished yet?
+	blo     clrloop
+
+	jsr     _main           ;user's C program.
+;
+;
+;
+	globl   _exit
+_exit:
+	orcc    #050h           ;remove IRQ and FIRQ interrupts.
+	jmp     0f000H          ;back to monitor.
+;
+; _swi: use of SWI vector causes execution, global variable 'cur_proc' points
+;       to start of a structure as follows:
+;
+;               struct u_regs {
+;                       char    cc;
+;                       int     d;
+;                       char    dp;
+;                       int     x;
+;                       int     y;
+;                       int     u;
+;                       int     pc;
+;                       int     s;
+;               };
+;
+	globl   _swi, _sys, _cur_proc
+_swi:
+	ldx     _cur_proc       ;cur_proc points to user_structure.
+	puls    a               ;get CC
+	sta     ,x+
+	puls    d               ;get D acc.
+	std     ,x++
+	puls    a               ;get DP
+	sta     ,x+
+	puls    d               ;get X acc.
+	std     ,x++
+	puls    d               ;get Y acc.
+	std     ,x++
+	puls    d               ;get U acc.
+	std     ,x++
+	puls    y               ;get PC
+	ldb     ,y+             ;get argument of SWI, increment PC.
+	sty     ,x++            ;store corrected PC.
+	sts     ,x              ;also store stack pointer.
+	clra
+	andcc	#0EFh		;swi set IRQ mask, allow it again.
+	pshs    d               ;argument of SWI now on stack.
+	jsr     _sys            ;call SWI handler.
+	leas    2,s             ;correct stack after C-call.
+	orcc	#010h		;set IRQ mask here. Rti will reset it.
+	ldx     _cur_proc       ;point to user_structure.
+	leax    12,x            ;point to end of user_structure
+	lds     ,x              ;reset stack pointer for this process.
+	ldd     ,--x            ;get PC
+	pshs    d
+	ldd     ,--x            ;get U acc.
+	pshs    d
+	ldd     ,--x            ;get Y acc.
+	pshs    d
+	ldd     ,--x            ;get X acc.
+	pshs    d
+	lda     ,-x             ;get DP.
+	pshs    a
+	ldd     ,--x            ;get D acc.
+	pshs    d
+	lda     ,-x             ;get CC.
+	pshs    a
+	rti                     ;enter user program.
+;
+; _irq: use of IRQ vector causes entry, calls 'C' code to process irq.
+;
+	globl   _irq, _irqlist
+_irq:
+	ldx	#_irqlist
+
+i_loop:
+	ldu	,x++		;get addr of function from list
+	beq	i_done		;stop on reaching NULL
+	pshs	x
+	jsr	,u		;call function
+	puls	x
+	bra	i_loop
+
+i_done:
+	rti
+;
+; Mask_irq: C cannot manipulate the condition codes directly.
+;
+	globl _mask_irq
+_mask_irq:
+	orcc    #010h           ;mask irq.
+	rts
+
+	globl _let_irq
+_let_irq:
+	andcc   #0EFh           ;allow irq.
+	rts
